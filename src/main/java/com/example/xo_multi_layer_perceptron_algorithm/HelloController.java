@@ -14,20 +14,19 @@ import java.util.List;
 import java.util.Random;
 
 public class HelloController {
-    static final double ALPHA = 0.01;
-    static double [] hidden_neurons;
-    static double[] input_hidden_weight;
-    static double[] input_hidden_weight_difference;
-    static double [] hidden_output_weight;
-    static double [] hidden_output_weight_difference;
-    static double hidden_output_bias_weight;
-    static double [] input_hidden_bias_weight;
-    static double [] input_hidden_delta;
-    static double  hidden_output_delta;
-    static double [] D_for_hidden_neurons;
-    static double [] net_input_for_hidden_layer;
-    static double maximum_hidden_output_weight_difference_for_current_epoch;
-    static double maximum_input_hidden_weight_for_current_epoch;
+    static final double ALPHA = 0.000000001;
+    static double [] hiddenNeurons;
+    static double [][] inputHiddenWeight;
+    static double [] inputHiddenBias;
+    static double [] inputHiddenNetInput;
+    static double [] hiddenOutPutWeight;
+    static double [] hiddenOutputBias;
+    static double [] inputHiddenDelta;
+    static double [] hiddenOutputDelta;
+    static double [] inputHiddenWeightDifference;
+    static double [] hiddenOutputWeightDifference;
+    static double maximumInputHiddenWeightDifference;
+    static double maximumHiddenOutputWeightDifference;
 
 
     public Button btn1;
@@ -397,6 +396,7 @@ public class HelloController {
         } else {
             input_array[3][3] = -1;
         }
+
         if (btn20.getText().equals("*")) {
             input_array[4][3] = 1;
         } else {
@@ -431,15 +431,9 @@ public class HelloController {
         String isXO = "";
 
         double result = multi_layer_perceptron(input_array);
-        result = Math.round(result);
-        if (result == 1) {
-            isXO = "X";
-            return isXO;
-        } else {
-            isXO = "O";
+        isXO = String.valueOf(result);
+        return isXO;
 
-            return isXO;
-        }
     }
 
 
@@ -465,104 +459,142 @@ public class HelloController {
             e.printStackTrace();
         }
         // Convert the List to a 2D array if needed
-        double[][] list_of_inputs_and_targets = data.toArray(new double[data.size()][]);
+        double[][] vectors = data.toArray(new double[data.size()][]);
+        hiddenNeurons = new double[25];
+        inputHiddenWeight = new double[vectors[0].length - 1][hiddenNeurons.length];
+        inputHiddenBias = new double[hiddenNeurons.length];
+        hiddenOutPutWeight = new double[hiddenNeurons.length];
+        hiddenOutputBias = new double[1];
+        hiddenOutputDelta = new double[1];
+        inputHiddenWeightDifference = new double[vectors[0].length - 1];
+        hiddenOutputWeightDifference = new double[hiddenNeurons.length];
+        inputHiddenNetInput = new double[hiddenNeurons.length];
+        Arrays.fill(inputHiddenNetInput , 0);
+        inputHiddenDelta = new double[vectors[0].length];
+        double totalEpoch = 0;
 
 
-//        declare total epoch
-        double total_epoch = 0;
-
-        hidden_neurons = new double[list_of_inputs_and_targets[0].length - 1];
-        input_hidden_bias_weight = new double[list_of_inputs_and_targets[0].length -1 ];
-        input_hidden_weight = new double[list_of_inputs_and_targets[0].length -1 ];
-        hidden_output_weight = new double[list_of_inputs_and_targets[0].length -1 ];
-        net_input_for_hidden_layer = new double[list_of_inputs_and_targets[0].length - 1];
-        Arrays.fill(net_input_for_hidden_layer , 0);
-        hidden_output_delta = random.nextDouble(0 , 1);
-        hidden_output_weight_difference = new double[hidden_neurons.length];
-        input_hidden_delta = new double[list_of_inputs_and_targets[0].length -1];
-        input_hidden_weight_difference = new double[list_of_inputs_and_targets[0].length -1];
-        maximum_input_hidden_weight_for_current_epoch = input_hidden_weight_difference [0];
-        maximum_hidden_output_weight_difference_for_current_epoch = hidden_output_weight_difference [0];
-        hidden_output_bias_weight = random.nextDouble(0 , 1);
-        for(int i = 0 ; i < input_hidden_bias_weight.length ; i++){
-            input_hidden_bias_weight [i] = random.nextDouble(0 , 1);
-        }
-        for (int i = 0; i < input_hidden_weight.length; i++){
-            input_hidden_weight[i] = random.nextDouble(0 , 1);
+        for(int rowIndex = 0 ; rowIndex < inputHiddenWeight.length ; rowIndex++){
+            for(int colIndex = 0 ; colIndex < inputHiddenWeight[0].length; colIndex++){
+                inputHiddenWeight[rowIndex][colIndex] = random.nextDouble(1) ;
+            }
         }
 
-        for (int i = 0 ; i < hidden_output_weight.length ; i++){
-            hidden_output_weight[i] = random.nextDouble(0 , 1);
+        for(int index = 0 ; index < inputHiddenBias.length ; index++){
+            inputHiddenBias[index] = random.nextDouble(1);
         }
 
-        D_for_hidden_neurons = new double[input_hidden_weight.length];
+        for (int i = 0 ; i < hiddenOutPutWeight.length; i++){
+            hiddenOutPutWeight[i] = random.nextDouble(1);
+        }
 
+        hiddenOutputBias[0] = random.nextDouble(1);
+        maximumInputHiddenWeightDifference = inputHiddenWeightDifference[0];
+        maximumHiddenOutputWeightDifference = hiddenOutputWeightDifference[0];
 
         while (true){
-            for(int epoch_index = 0 ; epoch_index < list_of_inputs_and_targets.length; epoch_index++){
-                double [] data_for_current_epoch = list_of_inputs_and_targets[epoch_index];
-
-                for(int index_value = 0 ; index_value < list_of_inputs_and_targets[0].length - 1; index_value++){
-                    net_input_for_hidden_layer[index_value] += data_for_current_epoch[index_value] * input_hidden_weight[index_value];
-                    net_input_for_hidden_layer[index_value] += input_hidden_bias_weight[index_value];
-                    double f = activation_function(net_input_for_hidden_layer[index_value]);
-                    hidden_neurons[index_value] =  f;
-                }
-
-                double net_input_for_output = 0;
-                for(int index_value = 0 ; index_value < hidden_neurons.length ; index_value++){
-                    net_input_for_output += hidden_neurons[index_value] * hidden_output_weight[index_value];
-                }
-                net_input_for_output += hidden_output_bias_weight;
-
-                double f = activation_function(net_input_for_output);
-                double derivative_f = derivative_function(net_input_for_output);
-                for(int index_value = 0 ; index_value < hidden_neurons.length ; index_value++){
-                    hidden_output_delta  = (data_for_current_epoch[data_for_current_epoch.length - 1] - f) * derivative_f;
-                    hidden_output_weight_difference[index_value] = ALPHA * hidden_output_delta * hidden_neurons[index_value];
-                }
-
-                //TODO: write this part: about D_for...
-                for(int i = 0 ; i < D_for_hidden_neurons.length; i++){
-                    for(int j = 0 ; j <= i; j++){
-                        D_for_hidden_neurons[i] = hidden_output_weight[j];
-                        D_for_hidden_neurons[i] *= hidden_output_delta;
+            for(int epochLength = 0 ; epochLength < vectors.length ; epochLength++){
+                double [] vector = vectors[epochLength];
+                for(int i = 0 ; i < vector.length - 1 ; i++){
+                    for(int j = 0 ; j < hiddenNeurons.length; j++){
+                        inputHiddenNetInput[i] += vector[j] * inputHiddenWeight[i][j];
                     }
-                    derivative_f = derivative_function(net_input_for_hidden_layer[i]);
-                    input_hidden_delta[i] = D_for_hidden_neurons[i] * derivative_f;
-                    input_hidden_weight_difference [i] = ALPHA * input_hidden_delta[i] * net_input_for_hidden_layer[i];
+                    inputHiddenNetInput[i] += inputHiddenBias[i];
+                    double f = activation_function(inputHiddenNetInput[i]);
+                    hiddenNeurons[i] = f;
                 }
-                for(int i = 0 ; i < hidden_output_weight_difference.length ; i++){
-                    if(hidden_output_weight_difference[i] > maximum_hidden_output_weight_difference_for_current_epoch){
-                        maximum_hidden_output_weight_difference_for_current_epoch = hidden_output_weight_difference[i];
+
+                double outputNetInput = 0;
+                for(int j = 0 ; j < hiddenNeurons.length; j++){
+                    outputNetInput += hiddenNeurons[j] * hiddenOutPutWeight[j];
+                }
+                outputNetInput += hiddenOutputBias[0];
+                double f = activation_function(outputNetInput);
+                hiddenOutputDelta[0]= (vector[vector.length - 1] - f) * derivative_function(outputNetInput);
+
+                for(int j = 0 ; j < hiddenNeurons.length ; j++){
+                    double Dj = 0;
+                    for(int k = 0 ; k < 1 ; k++){
+                        Dj += hiddenOutputDelta[k] * hiddenOutPutWeight[j];
+                    }
+                    inputHiddenDelta[j] = Dj * derivative_function(hiddenNeurons[j]);
+                }
+
+
+                for(int j = 0 ; j < hiddenOutputWeightDifference.length ; j++){
+                    hiddenOutputWeightDifference[j] = ALPHA * hiddenOutputDelta[0] * inputHiddenNetInput[j];
+                    hiddenOutPutWeight[j] += hiddenOutputWeightDifference[j];
+                }
+                hiddenOutputBias [0] += hiddenOutputBias[0] * ALPHA;
+
+                for(int i = 0 ; i < vector.length -1 ; i++){
+                    for(int j = 0 ; j < hiddenNeurons.length ; j++){
+                        inputHiddenWeightDifference[j] = ALPHA * hiddenOutputDelta[0] * inputHiddenNetInput[j];
+                        inputHiddenWeight[i][j] += inputHiddenWeightDifference[j];
+                    }
+                    inputHiddenBias[i]+= ALPHA * inputHiddenDelta[i];
+                }
+
+
+                for(int i = 0 ; i < inputHiddenWeightDifference.length ; i++){
+                    if(inputHiddenWeightDifference[i] > maximumInputHiddenWeightDifference){
+                        maximumInputHiddenWeightDifference = inputHiddenWeightDifference[i];
                     }
                 }
 
 
-                for(int i = 0 ; i < input_hidden_weight_difference.length ; i++){
-                    if(input_hidden_weight_difference[i] > maximum_input_hidden_weight_for_current_epoch){
-                        maximum_input_hidden_weight_for_current_epoch = input_hidden_weight_difference[i];
+                for(int i = 0 ; i < hiddenOutputWeightDifference.length ; i++){
+                    if(hiddenOutputWeightDifference[i] > maximumHiddenOutputWeightDifference){
+                        maximumHiddenOutputWeightDifference = hiddenOutputWeightDifference[i];
                     }
                 }
+
+
+
+
+
+
+
+
+
+
+
+
             }
-            total_epoch += 1;
-            if((maximum_input_hidden_weight_for_current_epoch < 0.00001) && (maximum_hidden_output_weight_difference_for_current_epoch < 0.00001) && (total_epoch != 0 )){
-                System.out.println("Training finished!");
+
+
+
+            totalEpoch += 1;
+            if((maximumInputHiddenWeightDifference < 0.00001) && (maximumHiddenOutputWeightDifference < 0.00001)){
+                System.out.println("Training Finished!!!");
+                System.out.println("Total epochs are: " + totalEpoch);
                 break;
-            }else{
-                for(int i = 0 ; i < input_hidden_weight.length; i++){
-                    input_hidden_weight[i] += input_hidden_weight_difference[i];
-                    input_hidden_bias_weight [i] += ALPHA * input_hidden_delta[i];
-                }
-                for(int i = 0 ; i < hidden_output_weight.length; i++){
-                    hidden_output_weight[i] += hidden_output_weight_difference[i];
-                    hidden_output_bias_weight = ALPHA * hidden_output_delta;
-                }
             }
-            System.out.println("Total epoch is: " + total_epoch);
 
 
         }
+
+//        declare total epoch
+
+
+
+//
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -578,22 +610,26 @@ public class HelloController {
                 inputs[r*5 + c] = inputArray[r][c];
             }
         }
-        for (int i = 0 ; i< hidden_neurons.length; i++){
-            System.out.print(hidden_neurons[i]);
+        for (int i = 0; i< hiddenNeurons.length; i++){
+            System.out.print(hiddenNeurons[i] + " ");
         }
 
-        for(int i = 0 ; i < hidden_neurons.length; i++){
-            net_input_for_hidden_layer [i] = inputs[i] * input_hidden_weight[i];
-            net_input_for_hidden_layer [i] += input_hidden_bias_weight[i];
-            double f = activation_function(net_input_for_hidden_layer[i]);
-            hidden_neurons[i] = f;
+        for(int i = 0 ; i < inputs.length ; i++){
+            for(int j = 0 ; j < hiddenNeurons.length; j++){
+                inputHiddenNetInput[i] += inputs[i] * inputHiddenWeight[i][j];
+            }
+            inputHiddenNetInput[i] += inputHiddenBias[i];
+            double f = activation_function(inputHiddenNetInput[i]);
+            hiddenNeurons [i] = f;
         }
 
         double net_input = 0;
-        for(int i = 0 ; i < hidden_neurons.length; i++){
-            net_input += hidden_output_weight[i] * hidden_neurons[i];
+        for(int i = 0; i < hiddenNeurons.length; i++){
+            net_input += hiddenOutPutWeight[i] * hiddenNeurons[i];
+
         }
-        net_input += hidden_output_bias_weight;
+        net_input += hiddenOutputBias[0];
+
 
         double f = activation_function(net_input);
         f = Math.round(f);
@@ -601,17 +637,21 @@ public class HelloController {
 
 
 
+
     }
 
 
     public static double activation_function(double net_input){
-        return (double) 1 / (1 + (Math.pow(2.74 , -net_input)) );
+        double result = (double) 1 / (1 + (Math.pow(Math.E, (net_input * (-1)))) );
+        System.out.println("The y is: " + result);
+        return  result;
     }
 
     public static double derivative_function(double net_input){
         double result_activation_function = activation_function(net_input);
-        return result_activation_function * (1 - result_activation_function);
-
+        double result = result_activation_function * (1 - result_activation_function);
+        System.out.println("The derivative of y is: " + result);
+        return result ;
     }
 
 
